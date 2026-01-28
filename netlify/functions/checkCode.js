@@ -26,7 +26,7 @@ exports.handler = async (event) => {
     return j(400, { error: "Missing code or fingerprint" });
   }
 
-  // 🔑 ضيف أكوادك هنا
+  // 🔑 الأكواد المسموحة
   const VALID_CODES = ["NOOX-1111", "NOOX-2222", "NOOX-3333"];
 
   if (!VALID_CODES.includes(code)) {
@@ -36,14 +36,17 @@ exports.handler = async (event) => {
   const store = getStore("device-lock");
   const saved = await store.get(code);
 
+  // أول استخدام
   if (!saved) {
     await store.setJSON(code, { fingerprint, activatedAt: Date.now() });
     return j(200, { ok: true, status: "activated" });
   }
 
+  // نفس الجهاز
   if (saved.fingerprint === fingerprint) {
     return j(200, { ok: true, status: "ok" });
   }
 
+  // جهاز ثاني
   return j(403, { error: "الكود مستخدم على جهاز آخر" });
 };

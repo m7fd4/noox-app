@@ -131,7 +131,7 @@
     </div>
   </div>
 
- <script>
+<script>
   const codeEl = document.getElementById("code");
   const msgEl  = document.getElementById("msg");
 
@@ -140,6 +140,7 @@
     msgEl.textContent = text || "";
   }
 
+  // بصمة بسيطة للمتصفح/الجهاز
   function makeFingerprint(){
     const raw =
       navigator.userAgent + "|" +
@@ -149,35 +150,40 @@
     return btoa(unescape(encodeURIComponent(raw)));
   }
 
-  async function login(){
+  // ✅ الأكواد المسموحة (بدّلها براحتك)
+  const VALID_CODES = ["NOOX-1111","NOOX-2222","NOOX-3333"];
+
+  function login(){
     const code = (codeEl.value || "").trim();
     if(!code){ setMsg("اكتب الكود أولاً.", "err"); return; }
 
-    setMsg("جاري التحقق...", "");
-
-    let res, data;
-    try{
-      res = await fetch("/.netlify/functions/checkCode", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, fingerprint: makeFingerprint() })
-      });
-      data = await res.json().catch(()=> ({}));
-    } catch (e){
-      setMsg("مشكلة اتصال. جرّب تحديث الصفحة.", "err");
+    // 1) تحقق الكود
+    if(!VALID_CODES.includes(code)){
+      setMsg("الكود غير صحيح ❌", "err");
       return;
     }
 
-    if(res.ok && data.ok){
-      localStorage.setItem("ACCESS_OK","1");
-      localStorage.setItem("ACCESS_CODE", code);
-      setMsg("تم تسجيل الدخول ✅", "ok");
-      setTimeout(()=> location.href="index.html", 250);
+    const fp = makeFingerprint();
+
+    // 2) إذا هذا الكود مستخدم سابقاً على نفس المتصفح نتحقق من البصمة
+    const lockKey = "CODE_LOCK_" + code; // مفتاح خاص لكل كود
+    const savedFp = localStorage.getItem(lockKey);
+
+    // أول مرة على هذا المتصفح: نربط الكود بالبصمة
+    if(!savedFp){
+      localStorage.setItem(lockKey, fp);
+    } else if(savedFp !== fp){
+      // بصمة مختلفة (تغيير كبير بالبيئة) = نرفض
+      setMsg("هذا الكود مربوط على نفس المتصفح مسبقاً، حاول بنفس الجهاز/المتصفح.", "err");
       return;
     }
 
-    // هنا راح يبين السبب الحقيقي
-    setMsg(data.error || (`خطأ: HTTP ${res.status}`), "err");
+    // 3) دخول طبيعي
+    localStorage.setItem("ACCESS_OK","1");
+    localStorage.setItem("ACCESS_CODE", code);
+
+    setMsg("تم تسجيل الدخول ✅", "ok");
+    setTimeout(()=> location.href="index.html", 250);
   }
 
   document.getElementById("loginBtn").addEventListener("click", login);
@@ -186,9 +192,15 @@
     setMsg("");
     codeEl.focus();
   });
-  codeEl.addEventListener("keydown", (e) => { if(e.key === "Enter") login(); });
+
+  codeEl.addEventListener("keydown", (e) => {
+    if(e.key === "Enter") login();
+  });
+
   setTimeout(()=> codeEl.focus(), 200);
 </script>
 
+
 </body>
 </html>
+

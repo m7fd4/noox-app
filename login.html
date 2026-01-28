@@ -131,7 +131,7 @@
     </div>
   </div>
 
-  <script>
+ <script>
   const codeEl = document.getElementById("code");
   const msgEl  = document.getElementById("msg");
 
@@ -146,7 +146,6 @@
       (navigator.language || "") + "|" +
       (screen.width + "x" + screen.height) + "|" +
       (Intl.DateTimeFormat().resolvedOptions().timeZone || "");
-
     return btoa(unescape(encodeURIComponent(raw)));
   }
 
@@ -156,44 +155,40 @@
 
     setMsg("جاري التحقق...", "");
 
+    let res, data;
     try{
-      const res = await fetch("/.netlify/functions/checkCode", {
+      res = await fetch("/.netlify/functions/checkCode", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code: code,
-          fingerprint: makeFingerprint()
-        })
+        body: JSON.stringify({ code, fingerprint: makeFingerprint() })
       });
-
-      const data = await res.json().catch(()=> ({}));
-
-      if(res.ok && data.ok){
-        localStorage.setItem("ACCESS_OK","1");
-        localStorage.setItem("ACCESS_CODE", code);
-        setMsg("تم تسجيل الدخول ✅", "ok");
-        setTimeout(()=> location.href="index.html", 250);
-      } else {
-        setMsg(data.error || "فشل الدخول", "err");
-      }
-    } catch(e){
-      setMsg("تعذر الاتصال بالسيرفر. جرّب تحديث الصفحة.", "err");
+      data = await res.json().catch(()=> ({}));
+    } catch (e){
+      setMsg("مشكلة اتصال. جرّب تحديث الصفحة.", "err");
+      return;
     }
+
+    if(res.ok && data.ok){
+      localStorage.setItem("ACCESS_OK","1");
+      localStorage.setItem("ACCESS_CODE", code);
+      setMsg("تم تسجيل الدخول ✅", "ok");
+      setTimeout(()=> location.href="index.html", 250);
+      return;
+    }
+
+    // هنا راح يبين السبب الحقيقي
+    setMsg(data.error || (`خطأ: HTTP ${res.status}`), "err");
   }
 
   document.getElementById("loginBtn").addEventListener("click", login);
-
   document.getElementById("clearBtn").addEventListener("click", () => {
     codeEl.value = "";
     setMsg("");
     codeEl.focus();
   });
-
-  codeEl.addEventListener("keydown", (e) => {
-    if(e.key === "Enter") login();
-  });
-
+  codeEl.addEventListener("keydown", (e) => { if(e.key === "Enter") login(); });
   setTimeout(()=> codeEl.focus(), 200);
 </script>
+
 </body>
 </html>

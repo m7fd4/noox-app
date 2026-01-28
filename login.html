@@ -133,6 +133,7 @@
 
 <script>
   const codeEl = document.getElementById("code");
+  const tokenEl = document.getElementById("token"); // حقل التوكن
   const msgEl  = document.getElementById("msg");
 
   function setMsg(text, type){
@@ -140,67 +141,74 @@
     msgEl.textContent = text || "";
   }
 
-  // بصمة بسيطة للمتصفح/الجهاز
-  function makeFingerprint(){
-    const raw =
-      navigator.userAgent + "|" +
-      (navigator.language || "") + "|" +
-      (screen.width + "x" + screen.height) + "|" +
-      (Intl.DateTimeFormat().resolvedOptions().timeZone || "");
-    return btoa(unescape(encodeURIComponent(raw)));
-  }
-
-  // ✅ الأكواد المسموحة (بدّلها براحتك)
+  // أكواد الدخول
   const VALID_CODES = ["NOOX-1111","NOOX-2222","NOOX-3333"];
 
-  function login(){
-    const code = (codeEl.value || "").trim();
-    if(!code){ setMsg("اكتب الكود أولاً.", "err"); return; }
+  // توليد توكن قوي
+  function generateToken(){
+    const arr = new Uint8Array(16);
+    crypto.getRandomValues(arr);
+    return Array.from(arr).map(b=>b.toString(16).padStart(2,"0")).join("");
+  }
 
-    // 1) تحقق الكود
+  function login(){
+    const code  = (codeEl.value || "").trim();
+    const token = (tokenEl?.value || "").trim();
+
+    if(!code){ setMsg("اكتب الكود أولاً.", "err"); return; }
     if(!VALID_CODES.includes(code)){
       setMsg("الكود غير صحيح ❌", "err");
       return;
     }
 
-    const fp = makeFingerprint();
+    const lockKey  = "CODE_LOCK_" + code;      // يخزن توكن هذا الكود
+    const savedTok = localStorage.getItem(lockKey);
 
-    // 2) إذا هذا الكود مستخدم سابقاً على نفس المتصفح نتحقق من البصمة
-    const lockKey = "CODE_LOCK_" + code; // مفتاح خاص لكل كود
-    const savedFp = localStorage.getItem(lockKey);
+    // أول مرة: نولّد توكن ونربطه بالكود
+    if(!savedTok){
+      const newTok = generateToken();
+      localStorage.setItem(lockKey, newTok);
+      localStorage.setItem("ACCESS_OK","1");
+      localStorage.setItem("ACCESS_CODE", code);
 
-    // أول مرة على هذا المتصفح: نربط الكود بالبصمة
-    if(!savedFp){
-      localStorage.setItem(lockKey, fp);
-    } else if(savedFp !== fp){
-      // بصمة مختلفة (تغيير كبير بالبيئة) = نرفض
-      setMsg("هذا الكود مربوط على نفس المتصفح مسبقاً، حاول بنفس الجهاز/المتصفح.", "err");
+      // اعرض التوكن للمستخدم
+      setMsg("هذا توكن جهازك (احفظه): " + newTok, "ok");
+      setTimeout(()=> location.href="index.html", 1200);
       return;
     }
 
-    // 3) دخول طبيعي
+    // مرات لاحقة: لازم يطابق التوكن
+    if(!token){
+      setMsg("ادخل توكن الجهاز حتى تكمل الدخول.", "err");
+      return;
+    }
+
+    if(token !== savedTok){
+      setMsg("توكن غير صحيح ❌", "err");
+      return;
+    }
+
+    // نجاح
     localStorage.setItem("ACCESS_OK","1");
     localStorage.setItem("ACCESS_CODE", code);
-
     setMsg("تم تسجيل الدخول ✅", "ok");
-    setTimeout(()=> location.href="index.html", 250);
+    setTimeout(()=> location.href="index.html", 300);
   }
 
   document.getElementById("loginBtn").addEventListener("click", login);
   document.getElementById("clearBtn").addEventListener("click", () => {
     codeEl.value = "";
+    if(tokenEl) tokenEl.value = "";
     setMsg("");
     codeEl.focus();
   });
 
-  codeEl.addEventListener("keydown", (e) => {
-    if(e.key === "Enter") login();
-  });
-
+  codeEl.addEventListener("keydown", (e) => { if(e.key === "Enter") login(); });
   setTimeout(()=> codeEl.focus(), 200);
 </script>
 
 
 </body>
 </html>
+
 

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>تفاصيل التطبيق - NOOX APPS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  
+  <script>
+  if(!localStorage.getItem("ACCESS_OK")){
+    location.href = "login.html";
+  }
+</script>
+
+  <div class="wrap">
+    <div class="topbar topbar-between">
+      <button class="iconbtn" onclick="history.back()" title="رجوع">←</button>
+      <div class="brand">NOOX APPS</div>
+      <div style="width:42px"></div>
+    </div>
+
+    <div class="detail">
+      <div class="detailHead">
+        <div class="detailIcon"><img id="icon" src="" alt=""></div>
+        <div class="detailMeta">
+          <div class="detailName" id="name">...</div>
+          <div class="detailSub" id="sub">...</div>
+        </div>
+      </div>
+
+      <div class="infoGrid">
+        <div class="infoBox"><div class="k">الإصدار</div><div class="v" id="version">-</div></div>
+        <div class="infoBox"><div class="k">الحجم</div><div class="v" id="size">-</div></div>
+        <div class="infoBox"><div class="k">المطور</div><div class="v" id="dev">-</div></div>
+        <div class="infoBox"><div class="k">آخر تحديث</div><div class="v" id="updated">-</div></div>
+      </div>
+
+      <div class="desc" id="desc">...</div>
+
+      <a class="installBtn" id="install" href="#" download>
+        ⬇️ تثبيت / تحميل
+      </a>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const id = params.get("id");
+
+    const app = APPS.find(a => a.id === id);
+    if(!app){
+      document.querySelector(".detail").innerHTML = `<div class="card">التطبيق غير موجود</div>`;
+    } else {
+      document.title = app.name + " - NOOX APPS";
+      document.getElementById("icon").src = app.icon;
+      document.getElementById("name").textContent = app.name;
+      document.getElementById("sub").textContent = `⭐ ${app.rating} • ${app.size} • ${app.category}`;
+      document.getElementById("version").textContent = app.version;
+      document.getElementById("size").textContent = app.size;
+      document.getElementById("dev").textContent = app.developer;
+      document.getElementById("updated").textContent = app.updated;
+      document.getElementById("desc").textContent = app.description;
+
+      const install = document.getElementById("install");
+      install.href = app.downloadUrl;   // حط رابط APK هنا
+    }
+  </script>
+  
+<div class="logout-wrap">
+  <button class="logout-btn" onclick="logout()">
+    تسجيل خروج
+  </button>
+</div>
+<script>
+  function logout(){
+    localStorage.removeItem("ACCESS_OK");
+    localStorage.removeItem("ACCESS_CODE");
+    location.href = "login.html";
+  }
+</script>
+
+</body>
+</html>

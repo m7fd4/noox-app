@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>دخول - NOOX</title>
+
+  <!-- ستايل موقعك -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- ستايل إضافي خاص بصفحة الدخول -->
+  <style>
+    .centerWrap{
+      min-height: 100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+    .loginCard{
+      width: min(520px, 100%);
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+    .loginTitle{
+      font-size: 20px;
+      font-weight: 950;
+      margin: 4px 0 6px;
+      text-align: center;
+    }
+    .loginSub{
+      color: rgba(255,255,255,.7);
+      font-size: 14px;
+      line-height: 1.7;
+      text-align: center;
+      margin: 0 0 14px;
+    }
+    .field{
+      margin-top: 10px;
+    }
+    .input{
+      width:100%;
+      padding: 14px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      color: #fff;
+      outline: none;
+      font-size: 15px;
+    }
+    .input::placeholder{ color: rgba(255,255,255,.55); }
+    .rowBtns{
+      display:flex;
+      gap:10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .btn{
+      flex: 1 1 160px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(124,58,237,.35);
+      background: rgba(124,58,237,.22);
+      color:#fff;
+      font-weight: 950;
+      cursor:pointer;
+      text-align:center;
+    }
+    .btn:active{ transform: scale(.99); }
+    .btnGhost{
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+    }
+    .msg{
+      margin-top: 12px;
+      font-size: 13px;
+      line-height: 1.7;
+      color: rgba(255,255,255,.75);
+      text-align:center;
+    }
+    .msg.err{ color: #ffb4b4; }
+    .msg.ok{ color: #b6ffcc; }
+
+    .tiny{
+      margin-top: 10px;
+      color: rgba(255,255,255,.55);
+      font-size: 12px;
+      text-align:center;
+      line-height: 1.7;
+    }
+
+    /* تحسينات للموبايل */
+    @media (max-width: 420px){
+      .loginCard{ padding: 16px; border-radius: 18px; }
+      .loginTitle{ font-size: 18px; }
+      .btn{ flex-basis: 100%; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="centerWrap">
+    <div class="loginCard">
+      <div class="brand" style="text-align:center; margin-bottom:10px;">NOOX APPS</div>
+
+      <div class="loginTitle">دخول الموقع</div>
+      <div class="loginSub">
+        ادخل كود الدخول حتى تفتح المحتوى.<br>
+        الكود يتم حفظه على نفس الجهاز.
+      </div>
+
+      <div class="field">
+        <input id="code" class="input" inputmode="text" autocomplete="one-time-code"
+               placeholder="مثال: NOOX-1111">
+      </div>
+
+      <div class="rowBtns">
+        <button class="btn" id="loginBtn">دخول</button>
+        <button class="btn btnGhost" id="clearBtn" type="button">مسح</button>
+      </div>
+
+      <div id="msg" class="msg"></div>
+
+      <div class="tiny">
+        إذا نسيت الكود، تواصل ويا صاحب الموقع.<br>
+        ملاحظة: بعض الأجهزة تحتاج تحديث الصفحة بعد تسجيل الدخول.
+      </div>
+    </div>
+  </div>
+
+  <script>
+  const codeEl = document.getElementById("code");
+  const msgEl  = document.getElementById("msg");
+
+  function setMsg(text, type){
+    msgEl.className = "msg" + (type ? " " + type : "");
+    msgEl.textContent = text || "";
+  }
+
+  function makeFingerprint(){
+    const raw =
+      navigator.userAgent + "|" +
+      (navigator.language || "") + "|" +
+      (screen.width + "x" + screen.height) + "|" +
+      (Intl.DateTimeFormat().resolvedOptions().timeZone || "");
+
+    return btoa(unescape(encodeURIComponent(raw)));
+  }
+
+  async function login(){
+    const code = (codeEl.value || "").trim();
+    if(!code){ setMsg("اكتب الكود أولاً.", "err"); return; }
+
+    setMsg("جاري التحقق...", "");
+
+    try{
+      const res = await fetch("/.netlify/functions/checkCode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: code,
+          fingerprint: makeFingerprint()
+        })
+      });
+
+      const data = await res.json().catch(()=> ({}));
+
+      if(res.ok && data.ok){
+        localStorage.setItem("ACCESS_OK","1");
+        localStorage.setItem("ACCESS_CODE", code);
+        setMsg("تم تسجيل الدخول ✅", "ok");
+        setTimeout(()=> location.href="index.html", 250);
+      } else {
+        setMsg(data.error || "فشل الدخول", "err");
+      }
+    } catch(e){
+      setMsg("تعذر الاتصال بالسيرفر. جرّب تحديث الصفحة.", "err");
+    }
+  }
+
+  document.getElementById("loginBtn").addEventListener("click", login);
+
+  document.getElementById("clearBtn").addEventListener("click", () => {
+    codeEl.value = "";
+    setMsg("");
+    codeEl.focus();
+  });
+
+  codeEl.addEventListener("keydown", (e) => {
+    if(e.key === "Enter") login();
+  });
+
+  setTimeout(()=> codeEl.focus(), 200);
+</script>
+</body>
+</html>

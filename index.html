@@ -97,6 +97,10 @@
 </div>
 <script>
   function logout(){
+    const code = localStorage.getItem("ACCESS_CODE");
+    if(code){
+      localStorage.removeItem("CODE_LOCK_" + code);
+    }
     localStorage.removeItem("ACCESS_OK");
     localStorage.removeItem("ACCESS_CODE");
     location.href = "login.html";
@@ -104,4 +108,5 @@
 </script>
 
 </body>
+
 </html>
